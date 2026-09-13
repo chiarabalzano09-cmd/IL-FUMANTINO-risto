@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+    <charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Il Fumantino — San Giuseppe Jato</title>
+    <style>
+        :root {
+            --bg-main: #121214;
+            --bg-surface: #1e1e24;
+            --bg-card: #272730;
+            --text-main: #f4f4f6;
+            --text-muted: #a1a1aa;
+            --accent: #e06d33;
+            --accent-hover: #c95c26;
+            --border: #3f3f46;
+            --success: #22c55e;
+            --danger: #ef4444;
+        }
+
+        [data-theme="light"] {
+            --bg-main: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-card: #f1f5f9;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent: #ea580c;
+            --accent-hover: #c2410c;
+            --border: #cbd5e1;
+            --success: #16a34a;
+            --danger: #dc2626;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; transition: background 0.2s, color 0.2s; }
+        body { background-color: var(--bg-main); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* Top Bar */
+        header { background-color: var(--bg-surface); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .brand h1 { font-size: 18px; font-weight: 700; color: var(--accent); }
+        .brand p { font-size: 11px; color: var(--text-muted); }
+        .top-controls { display: flex; gap: 10px; align-items: center; }
+        .theme-toggle, .btn-primary, .btn-secondary { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .theme-toggle:hover, .btn-secondary:hover { background: var(--border); }
+        .btn-primary { background: var(--accent); color: #fff; border: none; }
+        .btn-primary:hover { background: var(--accent-hover); }
+
+        /* Layout Principale */
+        .main-container { flex: 1; display: flex; overflow: hidden; }
+        
+        /* Sidebar Navigazione */
+        .sidebar { width: 240px; background-color: var(--bg-surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 15px; gap: 8px; }
+        .nav-btn { text-align: left; background: transparent; border: none; color: var(--text-muted); padding: 12px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+        .nav-btn:hover { background: var(--bg-card); color: var(--text-main); }
+        .nav-btn.active { background: var(--accent); color: #fff; }
+
+        /* Contenuto Dinamico */
+        .content-area { flex: 1; overflow-y: auto; padding: 20px; display: none; }
+        .content-area.active { display: block; }
+
+        /* Sezione Tavoli */
+        .tables-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; }
+        .table-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; position: relative; }
+        .table-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        .table-card.occupied { border-color: var(--danger); background: rgba(239, 68, 64, 0.05); }
+        .table-card h3 { font-size: 16px; margin-bottom: 6px; }
+        .table-card span { font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+        .status-free { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+        .status-occ { background: rgba(239, 68, 64, 0.15); color: var(--danger); }
+
+        /* Sezione Ordinazioni / Blocco Note */
+        .order-layout { display: flex; gap: 20px; height: 100%; }
+        .menu-selection { flex: 2; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; padding-right: 10px; }
+        .current-order { flex: 1; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; max-height: 100%; }
+        
+        .category-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .cat-btn { background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-muted); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+        .cat-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+        .menu-items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+        .menu-item { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; }
+        .menu-item:hover { border-color: var(--accent); }
+        .menu-item h5 { font-size: 13px; margin-bottom: 4px; }
+        .menu-item p { font-size: 12px; color: var(--accent); font-weight: bold; }
+
+        .order-list { flex: 1; overflow-y: auto; margin: 15px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 10px 0; }
+        .order-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; align-items: center; }
+
+        /* Schermata Cassa e Scontrino */
+        .cashier-container { display: flex; gap: 30px; max-width: 900px; margin: 0 auto; }
+        .payment-panel { flex: 1; background: var(--bg-surface); border: 1px solid var(--border); padding: 20px; border-radius: 12px; }
+        .receipt-panel { flex: 1; background: #fff; color: #000; padding: 25px; border-radius: 12px; font-family: 'Courier New', Courier, monospace; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .receipt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 12px; margin-bottom: 12px; }
+        .receipt-body { font-size: 12px; line-height: 1.4; }
+        .receipt-total { border-top: 1px dashed #000; margin-top: 12px; padding-top: 8px; font-weight: bold; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
+        .form-control { width: 100%; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); padding: 10px; border-radius: 8px; font-size: 14px; }
+
+        /* Modale Spiegazione Menù per Clienti */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .modal.open { display: flex; }
+        .modal-content { background: var(--bg-surface); border: 1px solid var(--border); width: 90%; max-width: 600px; max-height: 85vh; border-radius: 16px; padding: 25px; display: flex; flex-direction: column; }
+        .modal-body { flex: 1; overflow-y: auto; margin: 15px 0; font-size: 13px; line-height: 1.6; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <h1>🍷 Pizzeria Ristorante "Il Fumantino"</h1>
+            <p>San Giuseppe Jato (PA) — Tradizione e Gusto Siciliano</p>
+        </div>
+        <div class="top-controls">
+            <button class="btn-secondary" onclick="openWelcomeModal()">📜 Guida / Spiegazione Menù</button>
+            <button class="theme-toggle" onclick="toggleTheme()">☀️ / 🌙 Tema</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <button class="nav-btn active" onclick="switchTab('tables', this)">🪑 Sala & 20 Tavoli</button>
+            <button class="nav-btn" onclick="switchTab('ordering', this)">📝 Blocco Ordinazioni</button>
+            <button class="nav-btn" onclick="switchTab('cashier', this)">💶 Cassa & Pagamenti</button>
+        </div>
+
+        <!-- TAB 1: TAVOLI (1-20) -->
+        <div id="tab-tables" class="content-area active">
+            <h2 style="margin-bottom: 15px;">Gestione Sala (20 Tavoli)</h2>
+            <p style="margin-bottom: 20px; color: var(--text-muted);">Clicca su un tavolo per assegnare un'ordinazione o visualizzare lo stato.</p>
+            <div class="tables-grid" id="tables-grid-container"></div>
+        </div>
+
+        <!-- TAB 2: BLOCCO ORDINAZIONI -->
+        <div id="tab-ordering" class="content-area">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2>Blocco Ordinazioni — Tavolo Selezionato: <span id="active-table-label" style="color: var(--accent);">Nessuno</span></h2>
+                <button class="btn-secondary" onclick="switchTab('tables', document.querySelector('.sidebar button'))">Cambia Tavolo</button>
+            </div>
+            
+            <div class="order-layout">
+                <div class="menu-selection">
+                    <div class="category-tabs" id="category-tabs-container"></div>
+                    <div class="menu-items-grid" id="menu-items-grid-container"></div>
+                </div>
+                <div class="current-order">
+                    <h3>Comitiva / Conto Tavolo</h3>
+                    <div class="order-list" id="order-items-list">
+                        <p style="color: var(--text-muted); font-size: 13px;">Nessun piatto aggiunto.</p>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 15px;">
+                        <span>Totale Parziale:</span>
+                        <span id="order-total-price">€ 0.00</span>
+                    </div>
+                    <button class="btn-primary" onclick="sendOrderToKitchen()">Invia a Cucina & Cassa</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: CASSA E SCONTRINO -->
+        <div id="tab-ordering-cashier" class="content-area"></div>
+        <div id="tab-cashier" class="content-area">
+            <h2 style="margin-bottom: 15px;">Cassa & Emissione Scontrino</h2>
+            <div class="cashier-container">
+                <div class="payment-panel">
+                    <div class="form-group">
+                        <label>Seleziona Tavolo da Saldare</label>
+                        <select class="form-control" id="cashier-table-select" onchange="loadTableForCheckout()">
+                            <option value="">-- Scegli Tavolo --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Totale Dovuto</label>
+                        <input type="text" id="checkout-total" class="form-control" readonly value="€ 0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Contanti Ricevuti dal Cliente (€)</label>
+                        <input type="number" id="cash-given" class="form-control" placeholder="0.00" oninput="calculateChange()">
+                    </div>
+                    <div class="form-group">
+                        <label>Resto da Consegnare</label>
+                        <input type="text" id="checkout-change" class="form-control" readonly value="€ 0.00">
+                    </div>
+                    <button class="btn-primary" style="width: 100%; padding: 12px;" onclick="completePayment()">Emetti Scontrino & Libera Tavolo</button>
+                </div>
+
+                <div class="receipt-panel" id="receipt-box">
+                    <div class="receipt-header">
+                        <h3>Pizzeria Ristorante "Il Fumantino"</h3>
+                        <p>Via Vittorio Emanuele, San Giuseppe Jato (PA)</p>
+                        <p>P.IVA 06892340821</p>
+                    </div>
+                    <div class="receipt-body" id="receipt-content-lines">
+                        <p style="text-align: center; color: #666;">Nessun pagamento recente emesso.</p>
+                    </div>
+                    <div class="receipt-total" id="receipt-total-line">
+                        TOTALE: € 0.00
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale Spiegazione Menù / Presentazione Cameriera -->
+    <div class="modal" id="welcome-modal">
+        <div class="modal-content">
+            <h3>📜 Presentazione del Locale & Consigli della Cameriera</h3>
+            <div class="modal-body">
+                <p><b>Benvenuti a "Il Fumantino"!</b> Sono qui per illustrarvi il nostro menù che unisce i sapori autentici di San Giuseppe Jato e della Sicilia con grandi classici della cucina italiana.</p>
+                <br>
+                <p>🌟 <b>Specialità della Casa & Antipasti Siciliani:</b> Consigliamo caldamente il nostro tagliere di salumi e formaggi dei Monti Sicani, le panelle calde e le arancinette tradizionali.</p>
+                <p>🍕 <b>Le Nostre Pizze:</b> Impasto a lunga lievitazione con farine siciliane. Da provare la "Fumantina" (provola di bufera, salsiccia paesana e pistacchio) o la classica Norma.</p>
+                <p>🍝 <b>Primi Piatti Tipici:</b> Busiate alla Norma, Pasta con le Sarde fresca o i nostri primi di carne e pesce.</p>
+                <p>🥩 <b>Secondi & Contorni:</b> Bistecca alla griglia, involtini siciliani alla palermitana e contorni di stagione a km 0.</p>
+                <p>🍰 <b>Dessert:</b> Cannolo siciliano artigianale riempito al momento e semifreddo alle mandorle.</p>
+            </div>
+            <button class="btn-primary" onclick="closeWelcomeModal()">Chiudi & Torna in Sala</button>
+        </div>
+    </div>
+
+    <script>
+        // --- BASE DATI COMPLETA DEL MENÙ ---
+        const menuData = {
+            "Antipasti": [
+                { name: "Tagliere Tipico Sicano", price: 12.00 },
+                { name: "Caponata di Melanzane Siciliana", price: 8.50 },
+                { name: "Panelle e Crocché (8 pz)", price: 5.00 },
+                { name: "Bruschette al Pomodoro Pachino", price: 4.50 }
+            ],
+            "Pizze Tradizionali": [
+                { name: "Margherita (Pomodoro, Fior di Latte, Basilico)", price: 7.00 },
+                { name: "Marinara (Pomodoro, Aglio, Origano)", price: 5.50 },
+                { name: "Diavola (Salame Piccante)", price: 8.50 },
+                { name: "Capricciosa", price: 9.00 }
+            ],
+            "Pizze Siciliane & Speciali": [
+                { name: "Pizza 'Il Fumantino' (Pistacchio, Salsiccia, Provola)", price: 11.00 },
+                { name: "Pizza Norma (Melanzane Fritte, Ricotta Salata)", price: 9.50 },
+                { name: "Pizza Calzone Siciliano (Infornato con Tumma e Acciughe)", price: 9.00 },
+                { name: "Pizza Quattro Formaggi Locali", price: 9.50 }
+            ],
+            "Primi Piatti": [
+                { name: "Busiate alla Norma", price: 10.00 },
+                { name: "Pasta con le Sarde e Finocchietto", price: 11.00 },
+                { name: "Spaghetti alle Vongole e Bottarga", price: 13.00 },
+                { name: "Ravioli di Ricotta al Sugo Semplice", price: 9.50 }
+            ],
+            "Secondi Piatti": [
+                { name: "Involtini di Carne alla Palermitana", price: 10.50 },
+                { name: "Tagliata di Manzo con Rucola e Grana", price: 16.00 },
+                { name: "Frittura Mista di Paranza del Golfo", price: 14.00 }
+            ],
+            "Bevande & Vini": [
+                { name: "Acqua Minerale 0.75l", price: 2.50 },
+                { name: "Coca Cola / Fanta 33cl", price: 3.00 },
+                { name: "Vino Nero d'Avola DOC (Calice)", price: 4.50 },
+                { name: "Birra Artigianale Siciliana 0.33l", price: 5.00 }
+            ],
+            "Dolci": [
+                { name: "Cannolo Siciliano Artigianale", price: 4.00 },
+                { name: "Parfait di Mandorle con Cioccolato Caldo", price: 5.00 },
+                { name: "Sorbetto al Limone", price: 3.50 }
+            ]
+        };
+
+        // --- STATO DEL SISTEMA ---
+        let tablesState = {};
+        for (let i = 1; i <= 20; i++) {
+            tablesState[i] = { occupied: false, items: [], total: 0 };
+        }
+
+        let selectedTableId = null;
+        let currentOrderItems = [];
+        let currentCategory = "Antipasti";
+
+        // Inizializzazione Tavoli
+        function renderTables() {
+            const container = document.getElementById('tables-grid-container');
+            container.innerHTML = "";
+            for (let i = 1; i <= 20; i++) {
+                const t = tablesState[i];
+                container.innerHTML += `
+                    <div class="table-card ${t.occupied ? 'occupied' : ''}" onclick="openTable(${i})">
+                        <h3>Tavolo ${i}</h3>
+                        <span class="${t.occupied ? 'status-occ' : 'status-free'}">
+                            ${t.occupied ? 'Occupato (€ ' + t.total.toFixed(2) + ')' : 'Libero'}
+                        </span>
+                    </div>
+                `;
+            }
+            updateCashierDropdown();
+        }
+
+        function openTable(tableNum) {
+            selectedTableId = tableNum;
+            currentOrderItems = [...tablesState[tableNum].items];
+            document.getElementById('active-table-label').innerText = `Tavolo ${tableNum}`;
+            switchTab('ordering', document.querySelectorAll('.sidebar button')[1]);
+            renderOrderList();
+        }
+
+        // Gestione Tab
+        function switchTab(tabId, btnElement) {
+            document.querySelectorAll('.content-area').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.sidebar .nav-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabId).classList.add('active');
+            if (btnElement) btnElement.classList.add('active');
+        }
+
+        // Render Menu nelle Ordinazioni
+        function initMenuCategories() {
+            const container = document.getElementById('category-tabs-container');
+            container.innerHTML = "";
+            Object.keys(menuData).forEach(cat => {
+                container.innerHTML += `<button class="cat-btn ${cat === currentCategory ? 'active' : ''}" onclick="selectCategory('${cat}')">${cat}</button>`;
+            });
+            renderMenuItems();
+        }
+
+        function selectCategory(cat) {
+            currentCategory = cat;
+            initMenuCategories();
+        }
+
+        function renderMenuItems() {
+            const container = document.getElementById('menu-items-grid-container');
+            container.innerHTML = "";
+            menuData[currentCategory].forEach(item => {
+                container.innerHTML += `
+                    <div class="menu-item" onclick="addItemToOrder('${item.name}', ${item.price})">
+                        <h5>${item.name}</h5>
+                        <p>€ ${item.price.toFixed(2)}</p>
+                    </div>
+                `;
+            });
+        }
+
+        function addItemToOrder(name, price) {
+            currentOrderItems.push({ name, price });
+            renderOrderList();
+        }
+
+        function renderOrderList() {
+            const listContainer = document.getElementById('order-items-list');
+            const totalContainer = document.getElementById('order-total-price');
+            
+            if (currentOrderItems.length === 0) {
+                listContainer.innerHTML = `<p style="color: var(--text-muted); font-size: 13px;">Nessun piatto aggiunto.</p>`;
+                totalContainer.innerText = "€ 0.00";
+                return;
+            }
+
+            let html = "";
+            let total = 0;
+            currentOrderItems.forEach((item, index) => {
+                total += item.price;
+                html += `
+                    <div class="order-row">
+                        <span>${item.name}</span>
+                        <span>€ ${item.price.toFixed(2)} <button onclick="removeItem(${index})" style="background:none; border:none; color:var(--danger); cursor:pointer; margin-left:5px;">✕</button></span>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = html;
+            totalContainer.innerText = `€ ${total.toFixed(2)}`;
+        }
+
+        function removeItem(index) {
+            currentOrderItems.splice(index, 1);
+            renderOrderList();
+        }
+
+        function sendOrderToKitchen() {
+            if (!selectedTableId) {
+                alert("Seleziona prima un tavolo!");
+                return;
+            }
+            if (currentOrderItems.length === 0) {
+                alert("Il conto del tavolo è vuoto.");
+                return;
+            }
+            let total = currentOrderItems.reduce((acc, curr) => acc + curr.price, 0);
+            tablesState[selectedTableId] = { occupied: true, items: [...currentOrderItems], total: total };
+            alert(`Ordinazione del Tavolo ${selectedTableId} inviata con successo in cucina!`);
+            switchTab('tables', document.querySelector('.sidebar button'));
+            renderTables();
+        }
+
+        // Gestione Cassa e Scontrino
+        function updateCashierDropdown() {
+            const select = document.getElementById('cashier-table-select');
+            let currentVal = select.value;
+            select.innerHTML = `<option value="">-- Scegli Tavolo --</option>`;
+            for (let i = 1; i <= 20; i++) {
+                if (tablesState[i].occupied) {
+                    select.innerHTML += `<option value="${i}">Tavolo ${i} (€ ${tablesState[i].total.toFixed(2)})</option>`;
+                }
+            }
+            select.value = currentVal;
+        }
+
+        function loadTableForCheckout() {
+            const tId = document.getElementById('cashier-table-select').value;
+            if (!tId) {
+                document.getElementById('checkout-total').value = "€ 0.00";
+                return;
+            }
+            const total = tablesState[tId].total;
+            document.getElementById('checkout-total').value = `€ ${total.toFixed(2)}`;
+            calculateChange();
+        }
+
+        function calculateChange() {
+            const tId = document.getElementById('cashier-table-select').value;
+            if (!tId) return;
+            const total = tablesState[tId].total;
+            const given = parseFloat(document.getElementById('cash-given').value) || 0;
+            const change = given - total;
+            document.getElementById('checkout-change').value = change >= 0 ? `€ ${change.toFixed(2)}` : "€ 0.00 (Importo insufficiente)";
+        }
+
+        function completePayment() {
+            const tId = document.getElementById('cashier-table-select').value;
+            if (!tId) {
+                alert("Seleziona un tavolo da saldare.");
+                return;
+            }
+            const given = parseFloat(document.getElementById('cash-given').value) || 0;
+            const total = tablesState[tId].total;
+            if (given < total) {
+                alert("I contanti ricevuti sono inferiori al totale del conto.");
+                return;
+            }
+
+            // Genera Scontrino Fisso
+            const items = tablesState[tId].items;
+            let receiptLines = `<p><b>Tavolo:</b> ${tId} | <b>Data:</b> ${new Date().toLocaleDateString()}</p><br>`;
+            items.forEach(i => {
+                receiptLines += `<div style="display:flex; justify-content:space-between;"><span>${i.name}</span><span>€ ${i.price.toFixed(2)}</span></div>`;
+            });
+            document.getElementById('receipt-content-lines').innerHTML = receiptLines;
+            document.getElementById('receipt-total-line').innerHTML = `TOTALE: € ${total.toFixed(2)}<br>PAGATO: € ${given.toFixed(2)}<br>RESTO: € ${(given - total).toFixed(2)}`;
+
+            // Libera Tavolo
+            tablesState[tId] = { occupied: false, items: [], total: 0 };
+            renderTables();
+            updateCashierDropdown();
+            document.getElementById('cashier-table-select').value = "";
+            document.getElementById('checkout-total').value = "€ 0.00";
+            document.getElementById('cash-given').value = "";
+            document.getElementById('checkout-change').value = "€ 0.00";
+            alert(`Pagamento completato per il Tavolo ${tId}. Scontrino emesso correttamente.`);
+        }
+
+        // Modale Benvenuto
+        function openWelcomeModal() { document.getElementById('welcome-modal').classList.add('open'); }
+        function closeWelcomeModal() { document.getElementById('welcome-modal').classList.remove('open'); }
+
+        // Tema Toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+        }
+
+        // Avvio iniziale
+        renderTables();
+        initMenuCategories();
+    </script>
+</body>
+</html>
